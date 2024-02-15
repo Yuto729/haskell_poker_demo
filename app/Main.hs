@@ -46,7 +46,7 @@ isFullHouse numbers = length (filter (==2) numbers) == 1 && length (filter (==3)
 isFlash :: [Int] -> Bool
 isFlash suits = length (filter (==5) suits) == 1
 isStraight :: [Int] -> Bool
-isStraight [] = False 
+isStraight [] = False
 isStraight (x:numbers) = x==1 && head numbers == 1 && head (tail numbers) == 1 && head (removeFromList 2 numbers) == 1 && head (removeFromList 3 numbers) == 1 || isStraight numbers
 isStraightFlash :: [Int] -> [Int] -> Bool
 isStraightFlash suits numbers= isFlash suits && isStraight numbers
@@ -64,7 +64,14 @@ judge suits numbers
   | isTwoPair numbers = 2
   | isOnePair numbers = 1
   | otherwise = 0
-
+betAction :: Int -> IO Int
+betAction my_pre_bet_amount = do
+  if my_pre_bet_amount == -1 
+    then do return (-1)
+  else do
+    bet_amount <- getLine
+    let bet_amount_int = stringToInt bet_amount
+    return bet_amount_int
 main :: IO ()
 main = do
     let cards = [Card x y | x <- [0..3], y <- [1..13]]
@@ -84,26 +91,28 @@ main = do
     let com_card = take 3 shuffled_cards_after_preflop
     let shuffled_cards_after_flop = removeFromList 3 shuffled_cards_after_preflop
     let pre_bet = [50, 25, 0, 0]
-    putStrLn ("your: " ++ show(head pre_bet) ++ " com1: " ++ show(pre_bet !! 1) ++ " com2: " ++ show(pre_bet !! 2) ++ " com3: " ++ show(pre_bet !! 3))
+    putStrLn ("you: " ++ show(head pre_bet) ++ " com1: " ++ show(pre_bet !! 1) ++ " com2: " ++ show(pre_bet !! 2) ++ " com3: " ++ show(pre_bet !! 3))
     putStrLn "your initial hand is"
     print (convertHandsToShow all_suits all_numbers inithand)
-    putStrLn "enter bet amount"
-    pre_bet_string <- getLine
-    let pre_my_bet_amount = stringToInt pre_bet_string
-    let after_my_pre_bet = replace pre_bet (0, head pre_bet + pre_my_bet_amount) 
-    let after_com1_pre_bet = replace after_my_pre_bet (1, head after_my_pre_bet)
-    let after_com2_pre_bet = replace after_com1_pre_bet (2, head after_my_pre_bet)
-    let after_com3_prebet = replace after_com2_pre_bet (3, head after_my_pre_bet)
-    let pre_flop_pod = sum after_com3_prebet
+    putStrLn "enter bet amount (enter -1 to fold)"
+    pre_my_bet_amount <- betAction 0
+    let after_my_pre_bet = if pre_my_bet_amount == -1 then replace pre_bet (0, 0) else replace pre_bet (0, head pre_bet + pre_my_bet_amount)
+    let after_com1_pre_bet = if pre_my_bet_amount == -1 then after_my_pre_bet else replace after_my_pre_bet (1, head after_my_pre_bet) 
+    let after_com2_pre_bet = if pre_my_bet_amount == -1 then replace after_com1_pre_bet (2, after_my_pre_bet !! 1) else replace after_com1_pre_bet (2, head after_my_pre_bet)
+    let after_com3_pre_bet = if pre_my_bet_amount == -1 then replace after_com2_pre_bet (3, after_my_pre_bet !! 1) else replace after_com2_pre_bet (3, head after_my_pre_bet)
+    let pre_flop_pod = sum after_com3_pre_bet
+    putStrLn ("you: " ++ show(head after_com3_pre_bet) ++ " com1: " ++ show(after_com3_pre_bet !! 1) ++ " com2: " ++ show(after_com3_pre_bet !! 2) ++ " com3: " ++ show(after_com3_pre_bet !! 3))
     putStrLn ("pod: " ++ show pre_flop_pod)
     putStrLn ("community card: " ++ show (convertHandsToShow all_suits all_numbers com_card))
-    putStrLn "enter bet amount"
-    flop_bet_string <- getLine
+    putStrLn (if pre_my_bet_amount /= -1 then "enter bet amount (enter -1 to fold)" else "")
     let flop_bet = [0, 0, 0, 0]
-    let my_flop_bet_amount = stringToInt flop_bet_string
-    let after_my_flop_bet = replace flop_bet (0, my_flop_bet_amount)
-    putStrLn ("your: " ++ show(head after_my_flop_bet) ++ " com1: " ++ show(after_my_flop_bet !! 1) ++ " com2: " ++ show(after_my_flop_bet !! 2) ++ " com3: " ++ show(after_my_flop_bet !! 3))
-    let flop_pod = pre_flop_pod + sum after_my_flop_bet
+    my_flop_bet_amount <- betAction pre_my_bet_amount
+    let after_my_flop_bet = if my_flop_bet_amount == -1 then replace flop_bet (0, 0) else replace flop_bet (0, my_flop_bet_amount)
+    let after_com1_flop_bet = replace after_my_flop_bet (1, head after_my_flop_bet)
+    let after_com2_flop_bet = replace after_com1_flop_bet (2, head after_my_flop_bet)
+    let after_com3_flop_bet = replace after_com2_flop_bet (3, head after_my_flop_bet)
+    putStrLn ("you: " ++ show(head after_com3_flop_bet) ++ " com1: " ++ show(after_com3_flop_bet !! 1) ++ " com2: " ++ show(after_com3_flop_bet !! 2) ++ " com3: " ++ show(after_com3_flop_bet !! 3))
+    let flop_pod = pre_flop_pod + sum after_com3_flop_bet
     putStrLn ("pod: " ++ show flop_pod)
     let com_card_after_turn = com_card ++ [head shuffled_cards_after_flop]
     let shuffled_cards_after_turn = tail shuffled_cards_after_flop
@@ -111,14 +120,20 @@ main = do
     print (convertHandsToShow all_suits all_numbers com_card_after_turn)
     putStrLn "your hand is"
     print (convertHandsToShow all_suits all_numbers inithand)
-    putStrLn "enter bet amount"
-    river_bet_string <- getLine
+    putStrLn (if pre_my_bet_amount /= -1 then "enter bet amount (enter -1 to fold)" else "")
     let river_bet = [0, 0, 0, 0]
+    my_river_bet_amount <- betAction my_flop_bet_amount
+    let after_my_river_bet = if my_river_bet_amount == -1 then replace river_bet (0, 0) else replace river_bet (0, my_river_bet_amount)
+    let after_com1_river_bet = replace after_my_river_bet (1, head after_my_river_bet)
+    let after_com2_river_bet = replace after_com1_river_bet (2, head after_my_river_bet)
+    let after_com3_river_bet = replace after_com2_river_bet (3, head after_my_river_bet)
+    let river_pod = flop_pod + sum after_com3_river_bet
+    putStrLn ("you: " ++ show(head after_com3_river_bet) ++ " com1: " ++ show(after_com3_river_bet !! 1) ++ " com2: " ++ show(after_com3_river_bet !! 2) ++ " com3: " ++ show(after_com3_river_bet !! 3))
+    putStrLn ("pod: " ++ show river_pod)
     let com_card_after_river = com_card_after_turn ++ [head shuffled_cards_after_turn]
     putStrLn "community card is"
     print (convertHandsToShow all_suits all_numbers com_card_after_river)
-    putStrLn "your hand is"
-    print (convertHandsToShow all_suits all_numbers inithand)
+    print (if pre_my_bet_amount /= -1 && my_flop_bet_amount /= -1 && my_river_bet_amount /= -1 then "your hand is " ++ show (convertHandsToShow all_suits all_numbers inithand) else "you folded")
     putStrLn "com1 hand is"
     print (convertHandsToShow all_suits all_numbers com1_inithand)
     putStrLn "com2 hand is"
@@ -140,6 +155,6 @@ main = do
     let com1_judge_result = judge com1_counted_suits com1_counted_numbers
     let com2_judge_result = judge com2_counted_suits com2_counted_numbers
     let com3_judge_result = judge com3_counted_suits com3_counted_numbers
-    print ("you: " ++ all_hand !! my_judge_result ++ " com1: " ++ all_hand !! com1_judge_result ++ " com2: " ++ all_hand !! com2_judge_result ++ " com3: " ++ all_hand !! com3_judge_result)
+    print ((if my_river_bet_amount /= -1 then "you: " ++ all_hand !! my_judge_result else "you folded") ++ " com1: " ++ all_hand !! com1_judge_result ++ " com2: " ++ all_hand !! com2_judge_result ++ " com3: " ++ all_hand !! com3_judge_result)
     -- let player_list = ["you", "com1", "com2", "com3"]
     -- let hand_list = [my_judge_result, com1_judge_result, com2_judge_result, com3_judge_result]
