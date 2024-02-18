@@ -50,8 +50,14 @@ replace :: [a] -> (Int, a) -> [a]
 replace xs (i, e) = before ++ [e] ++ after
   where
     (before, _:after) = splitAt i xs
+convertCardToShow ::  [String] -> [String] -> Card -> String
+convertCardToShow suit_list number_list x = suit_list !! mark x ++ (number_list !! (number x - 1))
+convertHandsToShow :: [String] -> [String] -> [Card] -> [String]
+convertHandsToShow suit number hand = map (convertCardToShow suit number) hand
 main :: IO ()
 main = do
+  let all_suits = ["D", "H", "S", "C"]
+  let all_numbers = ["0", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
   let no_pair = [Card 0 14, Card 1 2, Card 3 11, Card 2 3, Card 2 4, Card 3 6, Card 0 7]
   let flash_cards = [Card 0 2, Card 0 3, Card 0 4, Card 0 5, Card 2 4, Card 0 12, Card 0 11]
   let suits_list = [0, 0, 0, 0]
@@ -60,5 +66,6 @@ main = do
   let suits = countSuits suits_list no_pair
   print suits
   print numbers
+  print $ convertHandsToShow all_suits all_numbers no_pair
   let test = judge suits numbers no_pair
   print test

@@ -48,7 +48,7 @@ replace xs (i, e) = before ++ [e] ++ after
   where
     (before, _:after) = splitAt i xs
 convertCardToShow ::  [String] -> [String] -> Card -> String
-convertCardToShow suit_list number_list x = suit_list !! mark x ++ number_list !! number x
+convertCardToShow suit_list number_list x = suit_list !! mark x ++ (number_list !! (number x - 1))
 convertHandsToShow :: [String] -> [String] -> [Card] -> [String]
 convertHandsToShow suit number hand = map (convertCardToShow suit number) hand
 countSuits :: [Int] -> [Card] -> [Int]
@@ -59,7 +59,7 @@ countNumber xs [] = xs
 {-
   ここで, A -> 14に変換する
 -}
-countNumber xs (x:hand) = countNumber (replace xs (if number x /= 1 then ((number x)-1, (xs !! (number x)-1)+1) else (13, (xs !! 13)+1))) hand
+countNumber xs (x:hand) = countNumber (replace xs ((number x -1), (xs !! (number x - 1))+1)) hand
 isOnePair :: [Int] -> Bool
 isOnePair numbers = length (filter (==2) numbers) == 1
 isTwoPair :: [Int] -> Bool
@@ -200,7 +200,7 @@ preflopDrawNplayer n (hands, deck) = preflopDrawNplayer (n-1) (hands ++ [fst (dr
 preFlopInit :: Int -> IO ([[Card]], [Card])
 preFlopInit n = do
   g <- getStdGen
-  let shuffled_deck = shuffle g [Card x y | x <- [0..3], y <- [1..13]]
+  let shuffled_deck = shuffle g [Card x y | x <- [0..3], y <- [2..14]]
   let (hands, deck_after_preflop) = preflopDrawNplayer n ([], shuffled_deck)
   return (hands, deck_after_preflop)
 findListIndex :: (a -> Bool) -> [a] -> [Int]
@@ -209,7 +209,7 @@ findListIndex predicate xs = map (fst) (filter (predicate . snd) (zip [0..] xs))
 main :: IO ()
 main = do
     let all_suits = ["D", "H", "S", "C"]
-    let all_numbers = ["0", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+    let all_numbers = ["0", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
     let all_hand = ["NoHand", "OnePair", "TwoPair", "ThreeCard", "Straight", "Flash", "FullHouse", "FourCard", "StraightFlash", "RoyalStraightFlash"]
     (hands, deck_after_preflop) <- preFlopInit 4
     let my_inithand = head hands
