@@ -1,38 +1,64 @@
 module Main where
+import Data.List (nub, sortBy)
 
-import System.Random
-import Data.List (nub, sortOn)
+isOnePair :: [Int] -> Bool
+isOnePair numbers = length (filter (==2) numbers) == 1
+isTwoPair :: [Int] -> Bool
+isTwoPair numbers = length (filter (==2) numbers) >= 2 
+isThreeCard :: [Int] -> Bool
+isThreeCard numbers =  notElem 2 numbers && length (filter (==3) numbers) == 1
+isFourCard :: [Int] -> Bool
+isFourCard numbers = length (filter (==4) numbers) == 1
+isFullHouse :: [Int] -> Bool
+isFullHouse numbers = length (filter (==2) numbers) == 1 && length (filter (==3) numbers) == 1
+isFlash :: [Int] -> Bool
+isFlash suits = length (filter (>=5) suits) == 1
+
+isStraight :: [Int] -> (Bool, [Int])
+isStraight numbers
+  | length (filter (>= 1) (take 5 $ reverse numbers)) == 5
+  = (True, [length numbers])
+  | length numbers < 5 = (False, [0])
+  | otherwise = isStraight $ init numbers
+
+isStraightFlash :: [Int] -> [Int] -> Bool
+isStraightFlash suits numbers= isFlash suits && fst (isStraight numbers)
+isRoyalStraightFlush :: [Int] -> [Int] -> Bool
+isRoyalStraightFlush suits numbers = isFlash suits && numbers !! 10 == 1 && numbers !! 11 == 1 && numbers !! 12 == 1 && numbers !! 13 == 1 && numbers !! 1 == 1
+judge :: [Int] -> [Int] -> [Card] -> (Int, [Int])
+judge suits numbers cards
+  | isRoyalStraightFlush suits numbers = (9, [0])
+  | isStraightFlash suits numbers = (8, snd $ isStraight numbers)
+  | isFourCard numbers = (7, head (findListIndex (== 4) numbers) : [last $ findListIndex (== 1) numbers])
+  | isFullHouse numbers = (6, [last $ findListIndex (==3) numbers, last $ findListIndex (==2) numbers])
+  | isFlash suits = (5, take 5 $ sortBy (flip compare) $ map number (filter (\card -> mark card == head (findListIndex (>=5) suits)) cards))
+  | fst $ isStraight numbers = (4, snd $ isStraight numbers)
+  | isThreeCard numbers = (3, last (findListIndex (==3) numbers) : take 2 (reverse $ findListIndex (==1) numbers))
+  | isTwoPair numbers = (2, take 2 $ reverse $ findListIndex (==2) numbers ++ [last $ findListIndex (==1) numbers])
+  | isOnePair numbers = (1, head (findListIndex (==2) numbers) : take 4 (reverse $ findListIndex (==1) numbers))
+  | otherwise = (0, take 5 $ reverse $ findListIndex (==1) numbers)
+findListIndex :: (a -> Bool) -> [a] -> [Int]
+findListIndex predicate xs = map (fst) (filter (predicate . snd) (zip [0..] xs))
 data Card = Card { mark :: Int, number :: Int } deriving (Eq, Ord, Show)
-getNubRandomRs :: RandomGen g => g -> (Int, Int) -> [Int]
-getNubRandomRs g (l, h) = take (abs (h - l) + 1) $ nub $ randomRs (l, h) g
-shuffle :: RandomGen g => g -> [a] -> [a]
-shuffle _ [] = []
-shuffle g xs = fmap fst $ sortOn snd $ zip xs rs
-    where
-        rs = getNubRandomRs g (1, length xs)
-stringToInt :: String -> Int
-stringToInt s = read s
-stringToIntList :: String -> [Int]
-stringToIntList s = map read $ words s
-removeFromList :: Int -> [a] -> [a]
-removeFromList _ [] = []
-removeFromList 0 xs = xs
-removeFromList n (_:xs) = removeFromList (n-1) xs
+countSuits :: [Int] -> [Card] -> [Int]
+countSuits xs [] = xs
+countSuits xs (x:hand) = countSuits (replace xs (mark x, (xs !! mark x)+1)) hand
+countNumber :: [Int] -> [Card] -> [Int]
+countNumber xs [] = xs
+countNumber xs (x:hand) = countNumber (replace xs ((number x -1), (xs !! (number x - 1))+1)) hand
 replace :: [a] -> (Int, a) -> [a]
 replace xs (i, e) = before ++ [e] ++ after
   where
     (before, _:after) = splitAt i xs
-preflopDrawNplayer :: Int -> ([[Card]], [Card]) -> ([[Card]], [Card])
-preflopDrawNplayer 0 (hands, deck) = (hands, deck)
-preflopDrawNplayer n (hands, deck) = preflopDrawNplayer (n-1) (hands ++ [fst (drawCard deck 2)], snd (drawCard deck 2))
-preFlopInit :: Int -> IO ([[Card]], [Card])
-preFlopInit n = do
-  g <- getStdGen
-  let shuffled_deck = shuffle g [Card x y | x <- [0..3], y <- [1..13]]
-  print shuffled_deck
-  let (hands, deck_after_preflop) = preflopDrawNplayer n ([], shuffled_deck)
-  return (hands, deck_after_preflop)
 main :: IO ()
 main = do
-    (hands, deck_after_preflop) <- preFlopInit 4
-    print (hands, deck_after_preflop)  
+  let no_pair = [Card 0 14, Card 1 2, Card 3 11, Card 2 3, Card 2 4, Card 3 6, Card 0 7]
+  let flash_cards = [Card 0 2, Card 0 3, Card 0 4, Card 0 5, Card 2 4, Card 0 12, Card 0 11]
+  let suits_list = [0, 0, 0, 0]
+  let numbers_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  let numbers = countNumber numbers_list no_pair
+  let suits = countSuits suits_list no_pair
+  print suits
+  print numbers
+  let test = judge suits numbers no_pair
+  print test
