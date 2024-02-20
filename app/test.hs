@@ -1,6 +1,8 @@
-module Main where
-import Data.List (nub, sortBy)
+import Data.List (nub, sortOn, sortBy, transpose, maximumBy)
+import Data.Ord (comparing)
 
+(.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
+(.&&.) f g a = f a && g a
 isOnePair :: [Int] -> Bool
 isOnePair numbers = length (filter (==2) numbers) == 1
 isTwoPair :: [Int] -> Bool
@@ -14,29 +16,29 @@ isFullHouse numbers = length (filter (==2) numbers) == 1 && length (filter (==3)
 isFlash :: [Int] -> Bool
 isFlash suits = length (filter (>=5) suits) == 1
 
-isStraight :: [Int] -> (Bool, [Int])
+isStraight :: [Int] -> (Bool, Int)
 isStraight numbers
   | length (filter (>= 1) (take 5 $ reverse numbers)) == 5
-  = (True, [length numbers])
-  | length numbers < 5 = (False, [0])
+  = (True, length numbers)
+  | length numbers < 5 = (False, 0)
   | otherwise = isStraight $ init numbers
 
 isStraightFlash :: [Int] -> [Int] -> Bool
 isStraightFlash suits numbers= isFlash suits && fst (isStraight numbers)
 isRoyalStraightFlush :: [Int] -> [Int] -> Bool
 isRoyalStraightFlush suits numbers = isFlash suits && numbers !! 10 == 1 && numbers !! 11 == 1 && numbers !! 12 == 1 && numbers !! 13 == 1 && numbers !! 1 == 1
-judge :: [Int] -> [Int] -> [Card] -> (Int, [Int])
+judge :: [Int] -> [Int] -> [Card] -> [Int]
 judge suits numbers cards
-  | isRoyalStraightFlush suits numbers = (9, [0])
-  | isStraightFlash suits numbers = (8, snd $ isStraight numbers)
-  | isFourCard numbers = (7, head (findListIndex (== 4) numbers) : [last $ findListIndex (== 1) numbers])
-  | isFullHouse numbers = (6, [last $ findListIndex (==3) numbers, last $ findListIndex (==2) numbers])
-  | isFlash suits = (5, take 5 $ sortBy (flip compare) $ map number (filter (\card -> mark card == head (findListIndex (>=5) suits)) cards))
-  | fst $ isStraight numbers = (4, snd $ isStraight numbers)
-  | isThreeCard numbers = (3, last (findListIndex (==3) numbers) : take 2 (reverse $ findListIndex (==1) numbers))
-  | isTwoPair numbers = (2, take 2 $ reverse $ findListIndex (==2) numbers ++ [last $ findListIndex (==1) numbers])
-  | isOnePair numbers = (1, head (findListIndex (==2) numbers) : take 4 (reverse $ findListIndex (==1) numbers))
-  | otherwise = (0, take 5 $ reverse $ findListIndex (==1) numbers)
+  | isRoyalStraightFlush suits numbers = [9, 0]
+  | isStraightFlash suits numbers = 8 : [snd $ isStraight numbers]
+  | isFourCard numbers = 7: map (+1) (head (findListIndex (== 4) numbers) : [last $ findListIndex ((>=1) .&&. (< 4)) numbers])
+  | isFullHouse numbers = 6: map (+1) ([last $ findListIndex (==3) numbers, last $ findListIndex (==2) numbers])
+  | isFlash suits = 5: take 5 (sortBy (flip compare) $ map number (filter (\card -> mark card == head (findListIndex (>=5) suits)) cards))
+  | fst $ isStraight numbers = 4: [snd $ isStraight numbers]
+  | isThreeCard numbers = 3: map (+1) (last (findListIndex (==3) numbers) : take 2 (reverse $ findListIndex (==1) numbers))
+  | isTwoPair numbers = 2: map (+1) (take 2 (reverse $ findListIndex (==2) numbers) ++ [if length (findListIndex (==2) numbers) >= 3 && head (findListIndex (==2) numbers) > head (findListIndex (==1) numbers) then head (findListIndex (==2) numbers) else head $ findListIndex (==1) numbers])
+  | isOnePair numbers = 1: map (+1) (head (findListIndex (==2) numbers) : take 4 (reverse $ findListIndex (==1) numbers))
+  | otherwise = 0: map (+1) (take 5 $ reverse $ findListIndex (==1) numbers)
 findListIndex :: (a -> Bool) -> [a] -> [Int]
 findListIndex predicate xs = map (fst) (filter (predicate . snd) (zip [0..] xs))
 data Card = Card { mark :: Int, number :: Int } deriving (Eq, Ord, Show)
@@ -54,18 +56,47 @@ convertCardToShow ::  [String] -> [String] -> Card -> String
 convertCardToShow suit_list number_list x = suit_list !! mark x ++ (number_list !! (number x - 1))
 convertHandsToShow :: [String] -> [String] -> [Card] -> [String]
 convertHandsToShow suit number hand = map (convertCardToShow suit number) hand
+handTest :: [Int] -> [Int] -> [Card] -> [Int]
+removeFromList :: Int -> [a] -> [a]
+removeFromList _ [] = []
+removeFromList 0 xs = xs
+removeFromList n (_:xs) = removeFromList (n-1) xs
+handTest suits_list numbers_list hand = judge (countSuits suits_list hand) (countNumber numbers_list hand) hand
+judgeWinner :: [[Int]] -> Int
+judgeWinner ranklist = go (zip [0..] ranklist)
+  where
+    go :: [(Int, [Int])] -> Int
+    go xs
+      | null xs || any (null . snd) xs = -1 
+      | length xs == 1 = fst $ head xs 
+      | otherwise =
+          let firstElems = map (\(_, x) -> head x) xs
+              maxFirstElem = maximum firstElems
+              maxElems = filter (\(_, x) -> head x == maxFirstElem) xs
+          in if length maxElems == 1
+             then fst $ head maxElems 
+             else go $ map (\(i, x) -> (i, tail x)) maxElems 
+
 main :: IO ()
 main = do
   let all_suits = ["D", "H", "S", "C"]
   let all_numbers = ["0", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
   let no_pair = [Card 0 14, Card 1 2, Card 3 11, Card 2 3, Card 2 4, Card 3 6, Card 0 7]
   let flash_cards = [Card 0 2, Card 0 3, Card 0 4, Card 0 5, Card 2 4, Card 0 12, Card 0 11]
+  let one_pair = [Card 0 14, Card 1 14, Card 3 11, Card 2 3, Card 2 4, Card 3 6, Card 0 7]
+  let two_pair = [Card 0 2, Card 1 2, Card 3 3, Card 2 3, Card 2 7, Card 3 8, Card 0 7]
+  let three_card = [Card 0 14, Card 1 14, Card 2 14, Card 2 11, Card 2 4, Card 3 6, Card 0 7]
+  let straight = [Card 0 2, Card 1 3, Card 2 4, Card 3 5, Card 2 6, Card 3 7, Card 0 12]
+  let flash = [Card 0 2, Card 0 5, Card 0 11, Card 0 14, Card 0 6, Card 3 7, Card 1 12]
+  let full_house = [Card 0 14, Card 1 14, Card 2 14, Card 2 11, Card 3 11, Card 3 6, Card 0 7]
+  let four_card = [Card 0 14, Card 1 14, Card 2 14, Card 2 11, Card 3 11, Card 3 14, Card 0 11]
+  let straight_flash = [Card 0 2, Card 0 3, Card 0 4, Card 0 5, Card 0 6, Card 0 7, Card 0 12]
   let suits_list = [0, 0, 0, 0]
   let numbers_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  let numbers = countNumber numbers_list no_pair
-  let suits = countSuits suits_list no_pair
-  print suits
+  print (countNumber numbers_list four_card)
+  let numbers = convertHandsToShow all_suits all_numbers four_card
   print numbers
-  print $ convertHandsToShow all_suits all_numbers no_pair
-  let test = judge suits numbers no_pair
+  let test = handTest suits_list numbers_list four_card
   print test
+  print (judgeWinner[[0,11,10,10,6,5],[0,14,12,11,10,9],[1,11,10,10,7,6], [1,11,10,10,9,6]])
+  print (judgeWinner [[2, 2, 6], [2, 2, 6], [2, 2, 6]])

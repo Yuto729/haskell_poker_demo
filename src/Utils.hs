@@ -41,3 +41,6 @@ replace xs (i, e) = before ++ [e] ++ after
 
 findListIndex :: (a -> Bool) -> [a] -> [Int]
 findListIndex predicate xs = map (fst) (filter (predicate . snd) (zip [0..] xs))
+
+(.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
+(.&&.) f g a = (f a) && (g a)

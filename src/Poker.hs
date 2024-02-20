@@ -1,7 +1,8 @@
 module Poker where
 
 import System.Random 
-import Data.List (nub, sortOn, sortBy)
+import Data.List (nub, sortOn, sortBy, transpose, maximumBy)
+import Data.Ord (comparing)
 import Utils
 
 data Card = Card { mark :: Int, number :: Int } deriving (Eq, Ord, Show)
@@ -46,7 +47,7 @@ isOnePair :: [Int] -> Bool
 isOnePair numbers = length (filter (==2) numbers) == 1
 
 isTwoPair :: [Int] -> Bool
-isTwoPair numbers = length (filter (==2) numbers) >= 2
+isTwoPair numbers = length (filter (==2) numbers) >= 2 
 
 isThreeCard :: [Int] -> Bool
 isThreeCard numbers =  notElem 2 numbers && length (filter (==3) numbers) == 1
@@ -60,11 +61,11 @@ isFullHouse numbers = length (filter (==2) numbers) == 1 && length (filter (==3)
 isFlash :: [Int] -> Bool
 isFlash suits = length (filter (>=5) suits) == 1
 
-isStraight :: [Int] -> (Bool, [Int])
+isStraight :: [Int] -> (Bool, Int)
 isStraight numbers
   | length (filter (>= 1) (take 5 $ reverse numbers)) == 5
-  = (True, [length numbers])
-  | length numbers < 5 = (False, [0])
+  = (True, length numbers)
+  | length numbers < 5 = (False, 0)
   | otherwise = isStraight $ init numbers
 
 isStraightFlash :: [Int] -> [Int] -> Bool
@@ -73,18 +74,36 @@ isStraightFlash suits numbers= isFlash suits && fst (isStraight numbers)
 isRoyalStraightFlush :: [Int] -> [Int] -> Bool
 isRoyalStraightFlush suits numbers = isFlash suits && numbers !! 10 == 1 && numbers !! 11 == 1 && numbers !! 12 == 1 && numbers !! 13 == 1 && numbers !! 1 == 1
 
-judge :: [Int] -> [Int] -> [Card] -> (Int, [Int])
-judge suits numbers cards
-  | isRoyalStraightFlush suits numbers = (9, [0])
-  | isStraightFlash suits numbers = (8, snd $ isStraight numbers)
-  | isFourCard numbers = (7, head (findListIndex (== 4) numbers) : [last $ findListIndex (== 1) numbers])
-  | isFullHouse numbers = (6, [last $ findListIndex (==3) numbers, last $ findListIndex (==2) numbers])
-  | isFlash suits = (5, take 5 $ sortBy (flip compare) $ map number (filter (\card -> mark card == head (findListIndex (>=5) suits)) cards))
-  | fst $ isStraight numbers = (4, snd $ isStraight numbers)
-  | isThreeCard numbers = (3, last (findListIndex (==3) numbers) : take 2 (reverse $ findListIndex (==1) numbers))
-  | isTwoPair numbers = (2, take 2 $ reverse $ findListIndex (==2) numbers ++ [last $ findListIndex (==1) numbers])
-  | isOnePair numbers = (1, head (findListIndex (==2) numbers) : take 4 (reverse $ findListIndex (==1) numbers))
-  | otherwise = (0, take 5 $ reverse $ findListIndex (==1) numbers)
+getRankOfHand :: [Int] -> [Int] -> [Card] -> [Int]
+{-
+  return (rank of hand, detail of rank)
+-}
+getRankOfHand suits numbers cards
+  | isRoyalStraightFlush suits numbers = [9, 0]
+  | isStraightFlash suits numbers = 8 : [snd $ isStraight numbers]
+  | isFourCard numbers = 7: map (+1) (head (findListIndex (== 4) numbers) : [last $ findListIndex ((>=1) .&&. (< 4)) numbers])
+  | isFullHouse numbers = 6: map (+1) ([last $ findListIndex (==3) numbers, last $ findListIndex (==2) numbers])
+  | isFlash suits = 5: take 5 (sortBy (flip compare) $ map number (filter (\card -> mark card == head (findListIndex (>=5) suits)) cards))
+  | fst $ isStraight numbers = 4: [snd $ isStraight numbers]
+  | isThreeCard numbers = 3: map (+1) (last (findListIndex (==3) numbers) : take 2 (reverse $ findListIndex (==1) numbers))
+  | isTwoPair numbers = 2: map (+1) (take 2 (reverse $ findListIndex (==2) numbers) ++ [if length (findListIndex (==2) numbers) >= 3 && head (findListIndex (==2) numbers) > head (findListIndex (==1) numbers) then head (findListIndex (==2) numbers) else head $ findListIndex (==1) numbers])
+  | isOnePair numbers = 1: map (+1) (head (findListIndex (==2) numbers) : take 4 (reverse $ findListIndex (==1) numbers))
+  | otherwise = 0: map (+1) (take 5 $ reverse $ findListIndex (==1) numbers)
+
+judgeWinner :: [[Int]] -> Int
+judgeWinner ranklist = go (zip [0..] ranklist)
+  where
+    go :: [(Int, [Int])] -> Int
+    go xs
+      | null xs || any (null . snd) xs = -1 
+      | length xs == 1 = fst $ head xs 
+      | otherwise =
+          let firstElems = map (\(_, x) -> head x) xs
+              maxFirstElem = maximum firstElems
+              maxElems = filter (\(_, x) -> head x == maxFirstElem) xs
+          in if length maxElems == 1
+             then fst $ head maxElems 
+             else go $ map (\(i, x) -> (i, tail x)) maxElems 
 
 betAction :: [Int] -> IO ([Int], String)
 {-
