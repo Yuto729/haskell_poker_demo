@@ -63,10 +63,12 @@ isFlash suits = length (filter (>=5) suits) == 1
 
 isStraight :: [Int] -> (Bool, Int)
 isStraight numbers
-  | length (filter (>= 1) (take 5 $ reverse numbers)) == 5
-  = (True, length numbers)
-  | length numbers < 5 = (False, 0)
-  | otherwise = isStraight $ init numbers
+  | length (filter (>= 1) (take 5 $ reverse numbers_)) == 5
+  = (True, length numbers_)
+  | length numbers_ < 5 = (False, 0)
+  | otherwise = isStraight $ init numbers_
+  where
+    numbers_ = if length numbers == 14 && numbers !! 13 >= 1 then replace numbers (0, numbers !! 13) else numbers
 
 isStraightFlash :: [Int] -> [Int] -> Bool
 isStraightFlash suits numbers= isFlash suits && fst (isStraight numbers)

@@ -18,10 +18,12 @@ isFlash suits = length (filter (>=5) suits) == 1
 
 isStraight :: [Int] -> (Bool, Int)
 isStraight numbers
-  | length (filter (>= 1) (take 5 $ reverse numbers)) == 5
-  = (True, length numbers)
-  | length numbers < 5 = (False, 0)
-  | otherwise = isStraight $ init numbers
+  | length (filter (>= 1) (take 5 $ reverse numbers_)) == 5
+  = (True, length numbers_)
+  | length numbers_ < 5 = (False, 0)
+  | otherwise = isStraight $ init numbers_
+  where
+    numbers_ = if length numbers == 14 && numbers !! 13 >= 1 then replace numbers (0, numbers !! 13) else numbers
 
 isStraightFlash :: [Int] -> [Int] -> Bool
 isStraightFlash suits numbers= isFlash suits && fst (isStraight numbers)
@@ -86,7 +88,7 @@ main = do
   let one_pair = [Card 0 14, Card 1 14, Card 3 11, Card 2 3, Card 2 4, Card 3 6, Card 0 7]
   let two_pair = [Card 0 2, Card 1 2, Card 3 3, Card 2 3, Card 2 7, Card 3 8, Card 0 7]
   let three_card = [Card 0 14, Card 1 14, Card 2 14, Card 2 11, Card 2 4, Card 3 6, Card 0 7]
-  let straight = [Card 0 2, Card 1 3, Card 2 4, Card 3 5, Card 2 6, Card 3 7, Card 0 12]
+  let straight = [Card 0 2, Card 1 3, Card 2 4, Card 3 5, Card 2 6, Card 3 10, Card 0 14]
   let flash = [Card 0 2, Card 0 5, Card 0 11, Card 0 14, Card 0 6, Card 3 7, Card 1 12]
   let full_house = [Card 0 14, Card 1 14, Card 2 14, Card 2 11, Card 3 11, Card 3 6, Card 0 7]
   let four_card = [Card 0 14, Card 1 14, Card 2 14, Card 2 11, Card 3 11, Card 3 14, Card 0 11]
@@ -94,9 +96,9 @@ main = do
   let suits_list = [0, 0, 0, 0]
   let numbers_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   print (countNumber numbers_list four_card)
-  let numbers = convertHandsToShow all_suits all_numbers four_card
+  let numbers = convertHandsToShow all_suits all_numbers straight
   print numbers
-  let test = handTest suits_list numbers_list four_card
+  let test = handTest suits_list numbers_list straight
   print test
   print (judgeWinner[[0,11,10,10,6,5],[0,14,12,11,10,9],[1,11,10,10,7,6], [1,11,10,10,9,6]])
   print (judgeWinner [[2, 2, 6], [2, 2, 6], [2, 2, 6]])
