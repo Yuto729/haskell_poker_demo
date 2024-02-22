@@ -72,8 +72,9 @@ executable haskell-demo
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:   base ^>=4.17.2.1,
-                     haskell-demo
+    build-depends:   base ^>=4.17.2.1
+                    ,random
+                    ,haskell-demo
 
     -- Directories containing source files.
     hs-source-dirs:   app

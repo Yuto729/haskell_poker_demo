@@ -50,10 +50,6 @@ countSuits xs (x:hand) = countSuits (replace xs (mark x, (xs !! mark x)+1)) hand
 countNumber :: [Int] -> [Card] -> [Int]
 countNumber xs [] = xs
 countNumber xs (x:hand) = countNumber (replace xs ((number x -1), (xs !! (number x - 1))+1)) hand
-replace :: [a] -> (Int, a) -> [a]
-replace xs (i, e) = before ++ [e] ++ after
-  where
-    (before, _:after) = splitAt i xs
 convertCardToShow ::  [String] -> [String] -> Card -> String
 convertCardToShow suit_list number_list x = suit_list !! mark x ++ (number_list !! (number x - 1))
 convertHandsToShow :: [String] -> [String] -> [Card] -> [String]
@@ -79,6 +75,44 @@ judgeWinner ranklist = go (zip [0..] ranklist)
              then fst $ head maxElems 
              else go $ map (\(i, x) -> (i, tail x)) maxElems 
 
+    {-
+  Queueの定義
+-}
+type Queue a = ([a], [a])
+
+empty :: Queue a
+empty = ([], [])
+
+check :: [a] -> [a] -> Queue a
+check [] r = (reverse r, [])
+check f  r = (f, r)
+
+snoc :: Queue a -> a -> Queue a
+snoc (f, r) x = check f (x : r)
+
+front :: Queue a -> a
+front ([], _) = error "empty queue"
+front (x : _, _) = x
+
+pop :: Queue a -> Queue a
+pop ([], _) = error "empty queue"
+pop (_ : f, r) = check f r
+
+stringToInt :: String -> Int
+stringToInt s = read s
+
+stringToIntList :: String -> [Int]
+stringToIntList s = map read $ words s
+
+replace :: [a] -> (Int, a) -> [a]
+replace xs (i, e) = before ++ [e] ++ after
+  where
+    (before, _:after) = splitAt i xs
+
+
+-- (.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
+-- (.&&.) f g a = (f a) && (g a)
+
 main :: IO ()
 main = do
   let all_suits = ["D", "H", "S", "C"]
@@ -102,3 +136,23 @@ main = do
   print test
   print (judgeWinner[[0,11,10,10,6,5],[0,14,12,11,10,9],[1,11,10,10,7,6], [1,11,10,10,9,6]])
   print (judgeWinner [[2, 2, 6], [2, 2, 6], [2, 2, 6]])
+  let players_list = [2, 3, 1, 0]
+  let players_list_string = map (\x -> if x == 0 then "you" else "com" ++ show (x)) players_list
+  print players_list_string
+  let n = 5
+  let init_list = take n (repeat 0)
+  let pre_bet = replace (replace init_list (n-1, 50)) (n-2, 25)
+  print pre_bet
+  print $ replicate n 0
+  let after_preflop_bet_list = [50, 2, -1, 0, 0]
+  mapM_ print (zipWith (\player betamount -> player ++ ": " ++ (if betamount /= -1 then show betamount else "folded")) ["com1", "you", "com2", "com3"] [0, -1, 0, 0])
+  let flop_bet = foldl (\xs x-> replace xs (x, -1)) (replicate n 0) (findListIndex (== -1) after_preflop_bet_list)
+  print flop_bet
+  let (before, _:after) = splitAt 0 [2, 3, 1, 0]
+  let betting_queue_after = foldl snoc (foldl snoc empty [0, 1, 2]) before
+  print betting_queue_after
+  let not_folded_index = findListIndex (/= -1) [0, -1, -1, 0]
+  let rank_list = [[12, 1, 2], [13, 1, 0], [3, 1, 1], [0, 0, 0]]
+  let not_folded_rank_list = reverse $ foldl (\ xs x -> rank_list !! x : xs) [] not_folded_index
+  print (map (++ [0, 1, 2]) [[1, 1], [2, 2], [3, 3]])
+  print not_folded_rank_list
