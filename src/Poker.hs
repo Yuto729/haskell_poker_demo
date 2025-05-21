@@ -306,39 +306,6 @@ playGame players_list = do
   let after_flop_hands = last (init hands) : last hands : init (init hands)
   let converted_hands = map (convertHandsToShow all_suits all_numbers) after_flop_hands
   showDown after_flop_hands com_card_after_river converted_hands after_river_bet_list players_list_after_flop_string
-  -- let converted_hands = map (convertHandsToShow all_suits all_numbers) hands
-  -- if head after_preflop_bet_list /= -1 && head after_flop_bet_list /= -1 && head after_river_bet_list /= -1 then do
-  --   putStrLn "your hand is"
-  --   print (convertHandsToShow all_suits all_numbers my_inithand)
-  -- else do
-  --   putStrLn "you folded"
-  -- putStrLn "com1 hand is"
-  -- print (convertHandsToShow all_suits all_numbers com1_inithand)
-  -- putStrLn "com2 hand is"
-  -- print (convertHandsToShow all_suits all_numbers com2_inithand)
-  -- putStrLn "com3 hand is"
-  -- print (convertHandsToShow all_suits all_numbers com3_inithand)
-  -- let suits_list = [0, 0, 0, 0]
-  -- let numbers_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  -- {-
-  --   [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A]
-  -- -}
-  -- let my_counted_suits = countSuits suits_list $ my_inithand ++ com_card_after_river
-  -- let my_counted_numbers = countNumber numbers_list $ my_inithand ++ com_card_after_river
-  -- let com1_counted_suits = countSuits suits_list $ com1_inithand ++ com_card_after_river
-  -- let com1_counted_numbers = countNumber numbers_list $ com1_inithand ++ com_card_after_river
-  -- let com2_counted_suits = countSuits suits_list $ com2_inithand ++ com_card_after_river
-  -- let com2_counted_numbers = countNumber numbers_list $ com2_inithand ++ com_card_after_river
-  -- let com3_counted_suits = countSuits suits_list $ com3_inithand ++ com_card_after_river
-  -- let com3_counted_numbers = countNumber numbers_list $ com3_inithand ++ com_card_after_river
-  -- let my_judge_result = getRankOfHand my_counted_suits my_counted_numbers $ my_inithand ++ com_card_after_river
-  -- let com1_judge_result = getRankOfHand com1_counted_suits com1_counted_numbers $ com1_inithand ++ com_card_after_river
-  -- let com2_judge_result = getRankOfHand com2_counted_suits com2_counted_numbers $ com2_inithand ++ com_card_after_river
-  -- let com3_judge_result = getRankOfHand com3_counted_suits com3_counted_numbers $ com3_inithand ++ com_card_after_river
-  -- let winner = players_list_string !! judgeWinner ([my_judge_result] ++ [com1_judge_result] ++ [com2_judge_result] ++ [com3_judge_result])
-  -- print ([my_judge_result] ++ [com1_judge_result] ++ [com2_judge_result] ++ [com3_judge_result]) 
-  -- print ((if head after_river_bet_list /= -1 then "you: " ++ all_hand !! head my_judge_result  else "you folded") ++ " com1: " ++ all_hand !! head com1_judge_result ++ " com2: " ++ all_hand !! head com2_judge_result ++ " com3: " ++ all_hand !! head com3_judge_result)
-  -- print ("winner: " ++ winner)
   goNext
   where
     goNext = do
